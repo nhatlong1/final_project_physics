@@ -16,6 +16,7 @@ Or click Code -> Download ZIP, extract
 Go to project's root folder (final_project_physics), run command
 > pip3 install requirements.txt  
 > python3 main.py  
+
 And select the simulation
 
 ## Progress
