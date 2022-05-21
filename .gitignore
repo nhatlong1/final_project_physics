@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+pylint_ex.txt
+requirements.in
+.vscode/
+timer.py
+*.rar
+test.py
