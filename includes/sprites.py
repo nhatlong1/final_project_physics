@@ -10,7 +10,7 @@ import pygame
 
 try:
     from includes.constants import OBJECT_BASE_SPEED, DEFAULT_FILL_COLOR, DEFAULT_SIZE, \
-        UP, DOWN, LEFT, RIGHT, HEX_COLOR_PATTERN
+        UP, DOWN, LEFT, RIGHT, HEX_COLOR_PATTERN, HM_FILL_COLOR, HM_RECT_SIZE
 except ImportError:
     OBJECT_BASE_SPEED = 300
     DEFAULT_FILL_COLOR = "#FFFFFF"
@@ -20,6 +20,8 @@ except ImportError:
     LEFT = pygame.K_LEFT
     RIGHT = pygame.K_RIGHT
     HEX_COLOR_PATTERN = "^#([0-9A-Fa-f]{3}){1,2}$"
+    HM_FILL_COLOR = "#000000"
+    HM_RECT_SIZE = (20, 5)
 
 class FallObject(pygame.sprite.Sprite):
     """FallObject
@@ -54,7 +56,7 @@ class FallObject(pygame.sprite.Sprite):
         """
         super().__init__(group)
         self.image = None
-        self.constraint_flag = False
+        self.__constraint_flag = False
         if isinstance(image, str):
             path = Path(image)
             if os.path.exists(path):
@@ -68,39 +70,39 @@ class FallObject(pygame.sprite.Sprite):
             self.image = pygame.Surface(rect_size)
             self.image.fill(fill_color)
         if isinstance(constraint, bool):
-            self.constraint_flag = constraint
+            self.__constraint_flag = constraint
 
-        if self.constraint_flag and not isinstance(constraints, tuple | list):
+        if self.__constraint_flag and not isinstance(constraints, tuple | list):
             raise ValueError(
                 f"inappropriate value for constraints when constraint is True: {constraints}")
-        elif self.constraint_flag and isinstance(constraints, tuple | list):
+        elif self.__constraint_flag and isinstance(constraints, tuple | list):
             tmp = list(constraints)
             if tmp[2] > 0:
                 tmp[2] = -1 * tmp[2]
                 constraints = tuple(tmp)
-            self.constraints = constraints
+            self.__constraints = constraints
         if isinstance(movement_speed, int):
-            self.speed = movement_speed
+            self.__speed = movement_speed
         else:
-            self.speed = OBJECT_BASE_SPEED
+            self.__speed = OBJECT_BASE_SPEED
 
         if isinstance(allow_keyboard_control, bool):
-            self.allow_keyboard_control = allow_keyboard_control
+            self.__allow_keyboard_control = allow_keyboard_control
         else:
-            self.allow_keyboard_control = True
+            self.__allow_keyboard_control = True
 
         if isinstance(key_binding, tuple | list):
             if len(set(key_binding)) == 4:
-                self.key_binding = key_binding
+                self.__key_binding = key_binding
             else:
-                self.key_binding = (UP, LEFT, DOWN, RIGHT)
+                self.__key_binding = (UP, LEFT, DOWN, RIGHT)
         else:
-            self.key_binding = (UP, LEFT, DOWN, RIGHT)
+            self.__key_binding = (UP, LEFT, DOWN, RIGHT)
 
         self.rect = self.image.get_rect(topleft = pos)
 
-        self.direction = pygame.math.Vector2()
-        self.position = pygame.math.Vector2(self.rect.topleft)
+        self.__direction = pygame.math.Vector2()
+        self.__position = pygame.math.Vector2(self.rect.topleft)
 
     def input(self):
         """Movement
@@ -109,19 +111,19 @@ class FallObject(pygame.sprite.Sprite):
         """
         keys = pygame.key.get_pressed()
 
-        if keys[self.key_binding[0]]:
-            self.direction.y = -1
-        elif keys[self.key_binding[2]]:
-            self.direction.y = 1
+        if keys[self.__key_binding[0]]:
+            self.__direction.y = -1
+        elif keys[self.__key_binding[2]]:
+            self.__direction.y = 1
         else:
-            self.direction.y = 0
+            self.__direction.y = 0
 
-        if keys[self.key_binding[3]]:
-            self.direction.x = 1
-        elif keys[self.key_binding[1]]:
-            self.direction.x = -1
+        if keys[self.__key_binding[3]]:
+            self.__direction.x = 1
+        elif keys[self.__key_binding[1]]:
+            self.__direction.x = -1
         else:
-            self.direction.x = 0
+            self.__direction.x = 0
 
     def config(self, image: pygame.Surface | str | WindowsPath | PosixPath = ...,
                constraint: bool = ..., constraints: tuple | list = ..., fill_color: str = ...,
@@ -153,38 +155,38 @@ class FallObject(pygame.sprite.Sprite):
             if os.path.exists(image):
                 self.image = pygame.image.load(str(image)).convert_alpha()
         if isinstance(constraint, bool):
-            self.constraint_flag = constraint
+            self.__constraint_flag = constraint
         if isinstance(constraints, tuple | list):
-            self.constraints = constraints
+            self.__constraints = constraints
         if isinstance(fill_color, str):
             if re.match(HEX_COLOR_PATTERN, fill_color):
                 self.image.fill(fill_color)
         if isinstance(movement_speed, int):
             if movement_speed > 0:
-                self.speed = movement_speed
+                self.__speed = movement_speed
             else:
-                self.speed = -1 * movement_speed
+                self.__speed = -1 * movement_speed
         if isinstance(allow_keyboard_control, bool):
-            self.allow_keyboard_control = allow_keyboard_control
+            self.__allow_keyboard_control = allow_keyboard_control
         if isinstance(key_binding, tuple | list):
             if len(set(key_binding)) == 4:
-                self.key_binding = key_binding
+                self.__key_binding = key_binding
 
     def constraint(self):
-        """constaint
+        """constraint
         """
-        if self.rect.left < self.constraints[0]:
-            self.rect.left = self.constraints[0]
-            self.position.x = self.rect.x
-        if self.rect.right > self.constraints[1]:
-            self.rect.right = self.constraints[1]
-            self.position.x = self.rect.x
-        if self.rect.top < self.constraints[2]:
-            self.rect.top = self.constraints[2]
-            self.position.y = self.rect.y
-        if self.rect.bottom > self.constraints[3]:
-            self.rect.bottom = self.constraints[3]
-            self.position.y = self.rect.y
+        if self.rect.left < self.__constraints[0]:
+            self.rect.left = self.__constraints[0]
+            self.__position.x = self.rect.x
+        if self.rect.right > self.__constraints[1]:
+            self.rect.right = self.__constraints[1]
+            self.__position.x = self.rect.x
+        if self.rect.top < self.__constraints[2]:
+            self.rect.top = self.__constraints[2]
+            self.__position.y = self.rect.y
+        if self.rect.bottom > self.__constraints[3]:
+            self.rect.bottom = self.__constraints[3]
+            self.__position.y = self.rect.y
 
     def update(self, delta_time: float):
         """Update
@@ -193,11 +195,85 @@ class FallObject(pygame.sprite.Sprite):
         Args:
             dt (float): deltatime
         """
-        if self.allow_keyboard_control:
+        if self.__allow_keyboard_control:
             self.input()
-            self.position.x += self.direction.x * self.speed * delta_time
-            self.position.y += self.direction.y * self.speed * delta_time
-            self.rect.x = round(self.position.x)
-            self.rect.y = round(self.position.y)
-        if self.constraint_flag:
+            self.__position.x += self.__direction.x * self.__speed * delta_time
+            self.__position.y += self.__direction.y * self.__speed * delta_time
+            self.rect.x = round(self.__position.x)
+            self.rect.y = round(self.__position.y)
+        if self.__constraint_flag:
             self.constraint()
+            
+            
+class BackgroundSprite(pygame.sprite.Sprite):
+    """Background
+    Background for pygame
+    """
+    def __init__(self, groups: pygame.sprite.Group,
+                 image: pygame.Surface | str | PosixPath | WindowsPath):
+        """init
+
+        Args:
+            groups (pygame.sprite.Group): pygame group
+            image (pygame.Surface | str | PosixPath | WindowsPath): image for background
+        """
+        super().__init__(groups)
+        
+        self.image = None
+        if isinstance(image, str):
+            path = Path(image)
+            if os.path.exists(path):
+                self.image = pygame.image.load(image).convert_alpha()
+        elif isinstance(image, pygame.Surface):
+            self.image = image
+        elif isinstance(image, WindowsPath | PosixPath):
+            if os.path.exists(image):
+                self.image = pygame.image.load(str(image)).convert_alpha()
+        if not image:
+            raise ValueError("please provide a value for image")
+        self.rect = self.image.get_rect(topleft = (0, 75))
+
+#!: WIP
+class HeightMeter(pygame.sprite.Sprite):
+    """Bar
+
+    Sprite for height meter
+    """
+    def __init__(self, pos: tuple, group: pygame.sprite.Group, origin: tuple,
+                fill_color: str = HM_FILL_COLOR, rect_size: tuple = HM_RECT_SIZE,):
+        """_summary_
+
+        Args:
+            pos (tuple): position
+            group (pygame.sprite.Group): pygame group
+            origin (tuple): origin position
+            fill_color (str, optional): bar fill color
+            rect_size (tuple, optional): bar size
+        """
+        super().__init__(group)
+        if isinstance(pos, tuple):
+            self.pos = pos
+        else:
+            raise TypeError(f"Invalid type for pos: {type(pos)}. Expected: tuple")
+        if isinstance(origin, tuple):
+            self.origin = origin
+        else:
+            raise TypeError(f"Invalid type for origin: {type(origin)}. Expected: tuple")
+        if isinstance(fill_color, str):
+            self.fill_color = fill_color
+        else:
+            raise TypeError(f"Invalid type for fill_color: {type(fill_color)}. Expected: str")
+        if not re.match(HEX_COLOR_PATTERN, self.fill_color):
+            raise ValueError(f"Invalid value for fill_color: {self.fill_color}. Expected: 6-digit"
+                             "HEX value for a color")
+        if isinstance(rect_size, tuple):
+            self.size = rect_size
+        else:
+            raise TypeError(f"Invalid type for rect_size: {type(rect_size)}. Expected: tuple")
+
+        self.rect = pygame.Surface(rect_size)
+        self.rect.fill(self.fill_color)
+        self.rect = self.image.get_rect(topleft = pos)
+
+        self.direction = pygame.math.Vector2()
+        self.position = pygame.math.Vector2(self.rect.topleft)

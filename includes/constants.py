@@ -8,6 +8,7 @@ import tkinter as tk
 
 # Main
 root = tk.Tk()
+WM_DELETE_WINDOW = "WM_DELETE_WINDOW"
 
 WIN_WIDTH = 600
 WIN_HEIGHT = 700
@@ -71,3 +72,7 @@ UP = pygame.K_UP
 DOWN = pygame.K_DOWN
 LEFT = pygame.K_LEFT
 RIGHT = pygame.K_RIGHT
+
+# Height meter
+HM_FILL_COLOR = "#000000"
+HM_RECT_SIZE = (20, 5)
