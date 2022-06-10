@@ -39,69 +39,83 @@ class CameraGroup(pygame.sprite.Group):
                 Example: pygame.K_RETURN
         """
         super().__init__()
-        self.display_surface = pygame.display.get_surface()
+        self.__display_surface = pygame.display.get_surface()
 
-        width = self.display_surface.get_size()[0]
-        height = self.display_surface.get_size()[1]
+        self.__width = self.__display_surface.get_size()[0]
+        self.__height = self.__display_surface.get_size()[1]
 
-        self.offset = pygame.math.Vector2()
-        self.limits = {
+        self.__offset = pygame.math.Vector2()
+        self.__limits = {
             "x_positive": None,
             "y_positive": None,
             "x_negative": None,
             "y_negative": None
         }
 
-        self.camera_rect = pygame.Rect(0, 0, width, height)
+        self.__camera_rect = pygame.Rect(0, 0, self.__width, self.__height)
 
         if isinstance(camera_speed, int):
-            self.camera_speed = camera_speed
+            self.__camera_speed = camera_speed
         else:
-            self.camera_speed = CAMERA_SPEED
+            self.__camera_speed = CAMERA_SPEED
 
-        self.ground_surface = None
+        self.__ground_surface = None
         if isinstance(ground_surface, pygame.Surface):
-            self.ground_surface = ground_surface
+            self.__ground_surface = ground_surface
         elif isinstance(ground_surface, str):
             path = Path(ground_surface)
             if os.path.exists(path):
-                self.ground_surface = pygame.image.load(ground_surface).convert_alpha()
+                self.__ground_surface = pygame.image.load(ground_surface).convert_alpha()
         elif isinstance(ground_surface, WindowsPath | PosixPath):
             if os.path.exists(ground_surface):
-                self.ground_surface = pygame.image.load(str(ground_surface)).convert_alpha()
-        if not self.ground_surface:
-            self.ground_surface = pygame.Surface((0, 0))
-        self.ground_rect = self.ground_surface.get_rect(topleft = (0,0))
+                self.__ground_surface = pygame.image.load(str(ground_surface)).convert_alpha()
+        if not self.__ground_surface:
+            self.__ground_surface = pygame.Surface((0, 0))
+        self.__ground_rect = self.__ground_surface.get_rect(topleft = (0,0))
 
         if isinstance(limit_x_positive, int):
             if limit_x_positive < 0:
                 limit_x_positive = -1 * limit_x_positive
-            self.limits["x_positive"] = limit_x_positive
+            self.__limits["x_positive"] = limit_x_positive
         if isinstance(limit_y_positive, int):
             if limit_y_positive > 0:
                 limit_y_positive = -1 * limit_y_positive
-            self.limits["y_positive"] = limit_y_positive
+            self.__limits["y_positive"] = limit_y_positive
         if isinstance(limit_x_negative, int):
             if limit_x_negative > 0:
                 limit_x_negative = -1 * limit_x_negative
-            self.limits["x_negative"] = limit_x_negative
+            self.__limits["x_negative"] = limit_x_negative
         if isinstance(limit_y_negative, int):
             if limit_y_negative < 0:
                 limit_y_negative = -1 * limit_y_negative
-            self.limits["y_negative"] = limit_y_negative
+            self.__limits["y_negative"] = limit_y_negative
 
         if isinstance(key_binding, tuple | list):
             if len(set(key_binding)) == 4:
-                self.key_binding = key_binding
+                self.__key_binding = key_binding
             else:
-                self.key_binding = (W, A, S, D)
+                self.__key_binding = (W, A, S, D)
         else:
-            self.key_binding = (W, A, S, D)
+            self.__key_binding = (W, A, S, D)
 
         if isinstance(reset_key, int):
-            self.reset_key = reset_key
+            self.__reset_key = reset_key
         else:
-            self.reset_key = None
+            self.__reset_key = None
+
+    def focus(self, target: pygame.sprite.Sprite):
+        if not isinstance(target, pygame.sprite.Sprite):
+            print("camera.py: Can not focus on target that is not a sprite")
+            return
+        try:
+            if not isinstance(target.rect, pygame.Rect):
+                print("camera.py: Target's rect is not pygame.Rect")
+                return
+        except NameError:
+            print("camera.py: Target does not have rect attribute")
+            return
+        self.__camera_rect.x = target.rect.centerx - int(self.__width / 2)
+        self.__camera_rect.y = target.rect.centery - int(self.__height / 2)
 
     def keyboard_control(self, allow_vertical: bool = True, allow_horizontal: bool = True):
         """Keyboard control
@@ -113,43 +127,47 @@ class CameraGroup(pygame.sprite.Group):
         """
         keys = pygame.key.get_pressed()
         if allow_horizontal:
-            if keys[self.key_binding[1]]:
-                self.camera_rect.x -= self.camera_speed
-            if keys[self.key_binding[3]]:
-                self.camera_rect.x += self.camera_speed
+            if keys[self.__key_binding[1]]:
+                self.__camera_rect.x -= self.__camera_speed
+            if keys[self.__key_binding[3]]:
+                self.__camera_rect.x += self.__camera_speed
 
-            if self.limits["x_negative"] is not None:
-                if self.camera_rect.x < self.limits["x_negative"]:
-                    self.camera_rect.x += self.camera_speed
-            if self.limits["x_positive"] is not None:
-                if self.camera_rect.x > self.limits["x_positive"]:
-                    self.camera_rect.x -= self.camera_speed
+            if self.__limits["x_negative"] is not None:
+                if self.__camera_rect.x < self.__limits["x_negative"]:
+                    self.__camera_rect.x += self.__camera_speed
+            if self.__limits["x_positive"] is not None:
+                if self.__camera_rect.x > self.__limits["x_positive"]:
+                    self.__camera_rect.x -= self.__camera_speed
 
         if allow_vertical:
             allow_down = True
             allow_up = True
-            if self.limits["y_negative"] is not None:
-                if self.camera_rect.y + self.camera_speed > self.limits["y_negative"]:
+            if self.__limits["y_negative"] is not None:
+                if self.__camera_rect.y + self.__camera_speed > self.__limits["y_negative"]:
                     allow_down = False
                 else:
                     allow_down = True
-            if self.limits["y_positive"] is not None:
-                if self.camera_rect.y - self.camera_speed < self.limits["y_positive"]:
+            if self.__limits["y_positive"] is not None:
+                if self.__camera_rect.y - self.__camera_speed < self.__limits["y_positive"]:
                     allow_up = False
                 else:
                     allow_up = True
 
-            if keys[self.key_binding[0]] and allow_up:
-                self.camera_rect.y -= self.camera_speed
-            if keys[self.key_binding[2]] and allow_down:
-                self.camera_rect.y += self.camera_speed
+            if keys[self.__key_binding[0]] and allow_up:
+                self.__camera_rect.y -= self.__camera_speed
+            if keys[self.__key_binding[2]] and allow_down:
+                self.__camera_rect.y += self.__camera_speed
 
-        if self.reset_key and keys[self.reset_key]:
-            self.camera_rect.x = 0
-            self.camera_rect.y = 0
+        if self.__reset_key and keys[self.__reset_key]:
+            self.reset_position()
 
-        self.offset.x = self.camera_rect.left
-        self.offset.y = self.camera_rect.top
+        self.__offset.x = self.__camera_rect.left
+        self.__offset.y = self.__camera_rect.top
+        
+        
+    def reset_position(self):
+        self.__camera_rect.x = 0
+        self.__camera_rect.y = 0
 
     def config(self, ground_surface: pygame.Surface | str | WindowsPath | PosixPath = ...,
                limit_x_positive: int | None = ..., limit_x_negative: int | None = ...,
@@ -170,50 +188,50 @@ class CameraGroup(pygame.sprite.Group):
                 Example: (pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d)
         """
         if isinstance(ground_surface, pygame.Surface):
-            self.ground_surface = ground_surface
+            self.__ground_surface = ground_surface
         elif isinstance(ground_surface, str):
             path = Path(ground_surface)
             if os.path.exists(path):
-                self.ground_surface = pygame.image.load(ground_surface).convert_alpha()
+                self.__ground_surface = pygame.image.load(ground_surface).convert_alpha()
         elif isinstance(ground_surface, WindowsPath | PosixPath):
             if os.path.exists(ground_surface):
-                self.ground_surface = pygame.image.load(str(ground_surface)).convert_alpha()
+                self.__ground_surface = pygame.image.load(str(ground_surface)).convert_alpha()
 
         if isinstance(limit_x_positive, int):
             if limit_x_positive < 0:
                 limit_x_positive = -1 * limit_x_positive
-            self.limits["x_positive"] = limit_x_positive
+            self.__limits["x_positive"] = limit_x_positive
         if isinstance(limit_y_positive, int):
             if limit_y_positive > 0:
                 limit_y_positive = -1 * limit_y_positive
-            self.limits["y_positive"] = limit_y_positive
+            self.__limits["y_positive"] = limit_y_positive
         if isinstance(limit_x_negative, int):
             if limit_x_negative > 0:
                 limit_x_negative = -1 * limit_x_negative
-            self.limits["x_negative"] = limit_x_negative
+            self.__limits["x_negative"] = limit_x_negative
         if isinstance(limit_y_negative, int):
             if limit_y_negative < 0:
                 limit_y_negative = -1 * limit_y_negative
-            self.limits["y_negative"] = limit_y_negative
+            self.__limits["y_negative"] = limit_y_negative
 
         if limit_x_positive is None:
-            self.limits["x_positive"] = None
+            self.__limits["x_positive"] = None
         if limit_y_positive is None:
-            self.limits["y_positive"] = None
+            self.__limits["y_positive"] = None
         if limit_x_negative is None:
-            self.limits["x_negative"] = None
+            self.__limits["x_negative"] = None
         if limit_y_negative is None:
-            self.limits["y_negative"] = None
+            self.__limits["y_negative"] = None
 
         if isinstance(camera_speed, int):
-            self.camera_speed = camera_speed
+            self.__camera_speed = camera_speed
 
         if isinstance(key_binding, tuple | list):
             if len(set(key_binding)) == 4:
-                self.key_binding = key_binding
+                self.__key_binding = key_binding
 
         if isinstance(reset_key, int):
-            self.reset_key = reset_key
+            self.__reset_key = reset_key
 
     def custom_draw(self, allow_vertical: bool = True, allow_horizontal: bool = True):
         """custom draw
@@ -225,9 +243,9 @@ class CameraGroup(pygame.sprite.Group):
         """
         self.keyboard_control(allow_vertical, allow_horizontal)
 
-        ground_offset = self.ground_rect.topleft - self.offset
-        self.display_surface.blit(self.ground_surface, ground_offset)
+        ground_offset = self.__ground_rect.topleft - self.__offset
+        self.__display_surface.blit(self.__ground_surface, ground_offset)
 
         for sprite in sorted(self.sprites(), key = lambda sprite: sprite.rect.centery):
-            offset_pos = sprite.rect.topleft - self.offset
-            self.display_surface.blit(sprite.image, offset_pos)
+            offset_pos = sprite.rect.topleft - self.__offset
+            self.__display_surface.blit(sprite.image, offset_pos)
