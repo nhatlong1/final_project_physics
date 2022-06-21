@@ -108,22 +108,14 @@ class FallObject(pygame.sprite.Sprite):
 
         self.__direction = pygame.math.Vector2()
         self.__position = pygame.math.Vector2(self.rect.topleft)
-        
-    @property
-    def speed(self):
-        return self.__speed
     
     @property
     def position(self):
         return self.__position
     
     @position.setter
-    def position_setter(self, value):
+    def position_setter(self, value: pygame.math.Vector2):
         self.__position = value
-    
-    @speed.setter
-    def speed_setter(self, value: int | float):
-        self.__speed = value
 
     def input(self):
         """Movement

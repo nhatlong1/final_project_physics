@@ -28,38 +28,38 @@ class Label:
     def __init__(self, master: pygame.Surface, font: pygame.font.Font, text: str | None = ...,
                  fg: str | None = ..., bg: str | None = ..., border_radius: int | None = ...,
                  justify: Literal["left", "right", "center"] = ...):
-        self.pattern = HEX_COLOR_PATTERN
+        self.__pattern = HEX_COLOR_PATTERN
         if master and isinstance(master, pygame.Surface):
-            self.screen = master
+            self.__screen = master
         elif not isinstance(master, pygame.Surface):
             raise TypeError("master must be a Surface")
         if font and isinstance(font, pygame.font.Font):
-            self.font = font
+            self.__font = font
         elif not isinstance(font, pygame.font.Font):
             raise TypeError("font must be pygame.font.Font")
         if fg and isinstance(fg, str):
-            if re.match(self.pattern, fg):
-                self._fg = fg
+            if re.match(self.__pattern, fg):
+                self.__fg = fg
             else:
-                self._fg = BLACK
+                self.__fg = BLACK
         else:
-            self._fg = BLACK
+            self.__fg = BLACK
         if bg and isinstance(bg, str):
-            if re.match(self.pattern, bg):
-                self._bg = bg
+            if re.match(self.__pattern, bg):
+                self.__bg = bg
             else:
-                self._bg = LIGHT_GRAY2
+                self.__bg = LIGHT_GRAY2
         else:
-            self._bg = LIGHT_GRAY2
+            self.__bg = LIGHT_GRAY2
         if border_radius and isinstance(border_radius, int):
-            self.border_radius = border_radius
+            self.__border_radius = border_radius
         else:
-            self.border_radius = -1
+            self.__border_radius = -1
         if justify and justify in ("left", "right", "center"):
-            self.justify = justify
+            self.__justify = justify
         else:
-            self.justify = "center"
-        self.text = text
+            self.__justify = "center"
+        self.__text = text
 
 
     def place(self, x: int, y: int,
@@ -81,29 +81,29 @@ class Label:
             raise ValueError("y must be int")
 
         if not width or (not isinstance(width, int) and not isinstance(width, float)):
-            width = self.font.size(self.text)[0]
+            width = self.__font.size(self.__text)[0]
             use_justify = False
         if not height or (not isinstance(height, int) and not isinstance(height, float)):
-            height = self.font.size(self.text)[1]
+            height = self.__font.size(self.__text)[1]
 
-        self.top_rect = pygame.Rect((x, y, width, height))
-        self.text_surface = self.font.render(self.text, True, self._fg)
-        self.text_rect = self.text_surface.get_rect()
-        self.text_rect.centery = self.top_rect.centery
+        self.__top_rect = pygame.Rect((x, y, width, height))
+        self.__text_surface = self.__font.render(self.__text, True, self.__fg)
+        self.__text_rect = self.__text_surface.get_rect()
+        self.__text_rect.centery = self.__top_rect.centery
         if use_justify:
-            match self.justify:
+            match self.__justify:
                 case "left":
-                    self.text_rect.left = self.top_rect.left
+                    self.__text_rect.left = self.__top_rect.left
                 case "right":
-                    self.text_rect.right = self.top_rect.right
+                    self.__text_rect.right = self.__top_rect.right
                 case "center":
-                    self.text_rect.center = self.top_rect.center
+                    self.__text_rect.center = self.__top_rect.center
                 case _:
                     pass
 
-        pygame.draw.rect(self.screen, self._bg, self.top_rect,
-                         border_radius=self.border_radius)
-        self.screen.blit(self.text_surface, self.text_rect)
+        pygame.draw.rect(self.__screen, self.__bg, self.__top_rect,
+                         border_radius=self.__border_radius)
+        self.__screen.blit(self.__text_surface, self.__text_rect)
 
     def config(self, text: str | None = ..., font: pygame.font.Font | None = ...,
                fg: str | None = ..., bg: str | None = ..., border_radius: int | None = ...,
@@ -119,14 +119,14 @@ class Label:
             justify: Change justify
         """
         if text and isinstance(text, str):
-            self.text = text
+            self.__text = text
         if font and isinstance(font, pygame.font.Font):
-            self.font = font
-        if fg and isinstance(fg, str) and re.match(self.pattern, fg):
-            self._fg = fg
-        if bg and isinstance(bg, str) and re.match(self.pattern, bg):
-            self._bg = bg
+            self.__font = font
+        if fg and isinstance(fg, str) and re.match(self.__pattern, fg):
+            self.__fg = fg
+        if bg and isinstance(bg, str) and re.match(self.__pattern, bg):
+            self.__bg = bg
         if border_radius and isinstance(border_radius, int):
-            self.border_radius = border_radius
+            self.__border_radius = border_radius
         if justify and justify in ("left", "right", "center"):
-            self.justify = justify
+            self.__justify = justify
