@@ -215,7 +215,6 @@ class Entry:
 
     def handle_entry_events(self, event):
         if self.__state != "normal":
-            print("State is not normal")
             return
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.__entry_rect.collidepoint(event.pos):
