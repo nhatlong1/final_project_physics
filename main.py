@@ -9,6 +9,7 @@ from includes.constants import WIN_WIDTH, WIN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGH
     GREEN
 from freefall.main import FreeFallSim
 from freefall.main_2 import FreeFallSimExp
+from pendulum.main import PendulumMain
 
 class Main:
     """Main
@@ -28,6 +29,7 @@ class Main:
         if isinstance(ff_exp, bool):
             self.__ff_exp = ff_exp
 
+
     def init_widget(self):
         """Init widget.
         Init widgets displayed on screen
@@ -35,12 +37,18 @@ class Main:
         self.__freefall_button = tk.Button(self.__root, text="Freefall",
                                          command=lambda: Thread(target=self.start_ff).start(),
                                          font=("Times New Roman", 25), bg=GREEN)
+        self.__pendulum_button = tk.Button(self.__root, text="Pendulum",
+                                           command=self.start_pen,
+                                           font=("Times New Roman", 25), bg=GREEN)
+
 
     def draw_widget(self):
         """Draw widget
         Draw widgets initiated in init_widget
         """
         self.__freefall_button.place(x=100, y=100, width=400, height=100)
+        self.__pendulum_button.place(x=100, y=205, width=400, height=100)
+
 
     def start_ff(self):
         """start_ff
@@ -55,6 +63,18 @@ class Main:
         ffs.init_widgets()
         ffs.mainloop()
         self.__root.deiconify()
+
+
+    def start_pen(self):
+        """start_pen
+        Start Pendulum simulation
+        """
+        self.__root.withdraw()
+        pendulum = PendulumMain()
+        pendulum.init_widgets()
+        pendulum.mainloop()
+        self.__root.deiconify()
+
 
     def protocol_quit(self):
         """For root.protocol
