@@ -13,7 +13,7 @@ from includes.button import Button
 from includes.entry import Entry
 from includes.label import Label
 from includes.camera import CameraGroup
-from includes.sprites import FallObject
+from includes.sprites import FallObject, BackgroundSprite
 
 
 class FreeFallSim:
@@ -41,6 +41,8 @@ class FreeFallSim:
         self.__camera = CameraGroup(limit_x_negative=0, limit_x_positive=0)
         self.__fall_object = FallObject((-100, 0), self.__camera, allow_keyboard_control=False,
                                         fill_color="#000000", rect_size=(25, 25))
+        self.__background = BackgroundSprite(self.__camera,
+                                             rf"{Path(__file__).parent}\assets\images\meter.png")
 
 
     def init_widgets(self):
@@ -62,7 +64,7 @@ class FreeFallSim:
                                        command=self.calculate)
         self.__reset_button = Button(self.__screen, font=self.__font, text="Reset",
                                      command=self.reset)
-        self.__fall_button = Button(self.__screen, font=self.__font, text="Fall!",
+        self.__fall_button = Button(self.__screen, font=self.__font, text="Drop",
                                   command=lambda: Thread(target=self.begin_fall).start())
         self.__entries = [self.__ga_entry, self.__height_entry, self.__time_entry,
                           self.__velocity_entry]
@@ -102,12 +104,12 @@ class FreeFallSim:
                 label.config(bg=LIGHT_GRAY2, fg=BLACK)
         if buttons is False:
             for button in self.__buttons:
-                button.config(disabled_color="#FFFFFF", text_bg_color="#FFFFFF",
+                button.config(disabled_color="#FFFFFF", text_color="#FFFFFF",
                               normal_color="#FFFFFF")
                 button.config(state="disabled")
         else:
             for button in self.__buttons:
-                button.config(disabled_color=DISABLED_STATE, text_bg_color=WHITE,
+                button.config(disabled_color=DISABLED_STATE, text_color=WHITE,
                               normal_color=NORMAL_STATE)
                 button.config(state="normal")
         if entries is False:
@@ -212,6 +214,7 @@ class FreeFallSim:
         while t < ft:
             if not self.__running:
                 break
+            self.__camera.focus(self.__fall_object)
             t += 1/100
             vel = ga * t
             distance_traveled = vel * 1/100
@@ -219,13 +222,13 @@ class FreeFallSim:
             total += distance_traveled
             self.__fall_object.rect.y = round(self.__fall_object.position.y)
             time.sleep(1/100)
-        self.end_fall()
 
 
     def end_fall(self):
         self.__running = False
-        self.__fall_button.config(text="Fall!", command=self.begin_fall)
+        self.__fall_button.config(text="Drop", command=self.begin_fall)
         self.widgets_visibility(True, True, True)
+        self.__camera.reset_position()
         self.set_object()
 
 
