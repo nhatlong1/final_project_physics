@@ -10,6 +10,7 @@ from includes.constants import WIN_WIDTH, WIN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGH
 from freefall.main import FreeFallSim
 from freefall.main_2 import FreeFallSimExp
 from pendulum.main import PendulumMain
+from projectile.main import ProjectileMain
 
 class Main:
     """Main
@@ -40,14 +41,18 @@ class Main:
         self.__pendulum_button = tk.Button(self.__root, text="Pendulum",
                                            command=self.start_pen,
                                            font=("Times New Roman", 25), bg=GREEN)
+        self.__projectile_button = tk.Button(self.__root, text="Projectile Motion",
+                                           command=self.start_pms,
+                                           font=("Times New Roman", 25), bg=GREEN)
 
 
     def draw_widget(self):
         """Draw widget
         Draw widgets initiated in init_widget
         """
-        self.__freefall_button.place(x=100, y=100, width=400, height=100)
-        self.__pendulum_button.place(x=100, y=205, width=400, height=100)
+        self.__freefall_button.place(x=100, y=75, width=400, height=100)
+        self.__pendulum_button.place(x=100, y=180, width=400, height=100)
+        self.__projectile_button.place(x=100, y=285, width=400, height=100)
 
 
     def start_ff(self):
@@ -73,6 +78,14 @@ class Main:
         pendulum = PendulumMain()
         pendulum.init_widgets()
         pendulum.mainloop()
+        self.__root.deiconify()
+        
+        
+    def start_pms(self):
+        self.__root.withdraw()
+        pms = ProjectileMain()
+        pms.init_widgets()
+        pms.mainloop()
         self.__root.deiconify()
 
 

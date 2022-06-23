@@ -135,3 +135,5 @@ requirements.in
 timer.py
 *.rar
 test.py
+keyboard_constants.py
+*.txt

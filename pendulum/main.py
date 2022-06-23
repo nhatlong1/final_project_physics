@@ -1,11 +1,12 @@
 import math
+import time
 from pathlib import Path
 from threading import Thread
 
 import matplotlib.pyplot as plt
 import pygame
 
-from pendulum.includes.button import Button
+from includes.button import Button
 from pendulum.includes.graph import coordinates_process
 from includes.label import Label
 from pendulum.includes.object import Pendulum
@@ -15,6 +16,7 @@ _HEIGHT = 600
 _WHITE = "#FFFFFF"
 _BLACK = "#000000"
 _DARK_RED = "#960000"
+_FPS = 60
 
 
 class PendulumMain:
@@ -43,15 +45,15 @@ class PendulumMain:
 
     def init_widgets(self):
         self.__btn_vel_increase = Button(self.__screen, font=self.__button_font,text="+",
-                                              command=lambda: Thread(target=self.increase_vel).start())
+                                         command=self.increase_vel, use_thread=False)
         self.__btn_vel_decrease = Button(self.__screen, font=self.__button_font, text="-",
-                                              command=lambda: Thread(target=self.decrease_vel).start())
+                                         command=self.decrease_vel, use_thread=False)
         self.__btn_damp_increase = Button(self.__screen, font=self.__button_font, text="+",
-                                             command=lambda: Thread(target=self.increase_damp).start())
+                                          command=self.increase_damp, use_thread=False)
         self.__btn_damp_decrease = Button(self.__screen, font=self.__button_font, text="-",
-                                             command=lambda: Thread(target=self.decrease_damp).start())
+                                          command=self.decrease_damp, use_thread=False)
         self.__btn_reset_value = Button(self.__screen, font=self.__button_font, text="Reset",
-                                        command=lambda: Thread(target=self.reset_value).start())
+                                        command=self.reset_value, use_thread=False)
         self.__btn_draw_graph = Button(self.__screen, font=self.__button_font,
                                        text="Graph", command=self.draw_graph, use_thread=False)
         self.__label_velocity = Label(
@@ -100,30 +102,36 @@ class PendulumMain:
         plt.ylabel('Position with respect to balance')
         plt.show()
 
-    def animation(self):
-        if self.__acceleration:
-            self.__times_loop.append(str(self.__count_loop))
-            self.__pendulum.old_x = self.__pendulum.x
-            self.__pendulum.old_y = self.__pendulum.y
-            self.__arr_x.append(
-                str(self.__pendulum.x - self.__pendulum.balance))
-            self.__pendulum.angacc = - \
-                (0.0005 + self.__angular_accel_change) * \
-                math.sin(self.__pendulum.angle)
-            self.__pendulum.vel += self.__pendulum.angacc
-            self.__pendulum.vel *= (1 + self.__vel_change)
-            self.__pendulum.angle += self.__pendulum.vel
-            self.__pendulum.update_position()
-            self.__count_loop += 1
-        if self.__count_loop % 180 == 0:
-            self.reset_region()
+    def animation(self, fps):
+        while self.__running:
+            if self.__acceleration:
+                self.__times_loop.append(str(self.__count_loop))
+                self.__pendulum.old_x = self.__pendulum.x
+                self.__pendulum.old_y = self.__pendulum.y
+                self.__arr_x.append(
+                    str(self.__pendulum.x - self.__pendulum.balance))
+                self.__pendulum.angacc = - \
+                    (0.0005 + self.__angular_accel_change) * \
+                    math.sin(self.__pendulum.angle)
+                self.__pendulum.vel += self.__pendulum.angacc
+                self.__pendulum.vel *= (1 + self.__vel_change)
+                self.__pendulum.angle += self.__pendulum.vel
+                self.__pendulum.update_position()
+                self.__count_loop += 1
+            if self.__count_loop % 180 == 0:
+                self.reset_region()
+            time.sleep(1/fps)
 
 
     def reset_region(self):
-        self.__click_region = self.__click_region = pygame.Surface(
-                            (_WIDTH, _HEIGHT), pygame.SRCALPHA, 32).convert_alpha()
+        try:
+            self.__click_region = self.__click_region = pygame.Surface(
+                                (_WIDTH, _HEIGHT), pygame.SRCALPHA, 32).convert_alpha()
+        except pygame.error:
+            pass
 
     def mainloop(self):
+        Thread(target=self.animation, args=(_FPS,)).start()
         while self.__running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -144,17 +152,6 @@ class PendulumMain:
             self.__screen.fill(_WHITE)
             self.__screen.blit(pygame.transform.scale(
                 self.__background, (955, 555)), (0, 0))
-            self.animation()
             self.draw_widget()
             pygame.display.flip()
-            self.__clock.tick(60)
-
-
-def main():
-    main = PendulumMain()
-    main.init_widgets()
-    main.mainloop()
-
-
-if __name__ == '__main__':
-    main()
+            self.__clock.tick(_FPS)
