@@ -2,18 +2,21 @@
 
 A module for button in pygame
 """
+from pathlib import PosixPath, WindowsPath, Path
 import re
 from typing import Any, Callable, Literal
 from threading import Thread
 import pygame
 
-NORMAL = "normal"
-DISABLED = "disabled"
-WHITE = "#FFFFFF"
-DEF_DISABLED_STATE = "#9c9c9c"
-DEF_NORMAL_STATE = "#475F77"
-DEF_DOWN_STATE = "#D74B4B"
-HEX_COLOR_PATTERN = "^#([0-9A-Fa-f]{3}){1,2}$"
+_NORMAL = "normal"
+_DISABLED = "disabled"
+_WHITE = "#FFFFFF"
+_DEF_DISABLED_STATE = "#9c9c9c"
+_DEF_NORMAL_STATE = "#475F77"
+_DEF_DOWN_STATE = "#D74B4B"
+_HEX_COLOR_PATTERN = "^#([0-9A-Fa-f]{3}){1,2}$"
+_TYPE_MSG = lambda name, param, expect: f"invalid type for {name}: {param}. Expected: {expect}"
+_VAL_MSG = lambda name, param, expect: f"invalid value for {name}: {param}. Expected: {expect}"
 
 class Button:
     """Button
@@ -21,17 +24,20 @@ class Button:
     Pygame widget Button
     """
     def __init__(self, master: pygame.Surface, font: pygame.font.Font, text: str | None = ...,
+                 image: str | pygame.Surface | PosixPath | WindowsPath | None = None,
                  command: Callable[[], Any] | str = ..., args: list | tuple = (),
                  use_thread: bool = True,
                  state: Literal["normal", "disabled"] = "normal", border_radius: int | None = 0,
-                 text_bg_color: str = WHITE, disabled_color: str = DEF_DISABLED_STATE,
-                 normal_color: str = DEF_NORMAL_STATE, click_color: str = DEF_DOWN_STATE):
+                 text_color: str = _WHITE, disabled_color: str = _DEF_DISABLED_STATE,
+                 normal_color: str = _DEF_NORMAL_STATE, click_color: str = _DEF_DOWN_STATE):
         """Button:
 
         Args:
             master (pygame.Surface): A surface to draw on
             font (pygame.font.Font): Pygame font, for rendering text.
             text (str | None, optional): Text to render on Button. Optional.
+            image (str | pygame.Surface | PosixPath | WindowsPath | None, optional): Image
+            for button
             command (Callable[[], Any] | str, optional):
                 Function to be called when button is pressed. Optional
             args (list, tuple, optional): A list/tuple of arguments to pass in command
@@ -43,15 +49,17 @@ class Button:
         if isinstance(master, pygame.Surface):
             self.__screen = master
         elif not isinstance(master, pygame.Surface):
-            raise TypeError(f"invalid type for master: {type(master)}. Expected: pygame.Surface")
+            raise TypeError(_TYPE_MSG("master", master, "pygame.Surface"))
         if isinstance(font, pygame.font.Font):
             self.__font = font
         elif not isinstance(font, pygame.font.Font):
-            raise TypeError(f"invalid type for font: {type(font)}. Expected: pygame.font.Font")
+            raise TypeError(_TYPE_MSG("font", type(font), "pygame.font.Font"))
         if isinstance(text, str):
             self.__text = text
         else:
-            raise TypeError(f"invalid type for text: {type(text)}. Expected: str")
+            raise TypeError(_TYPE_MSG(type(text), "str"))
+        if not isinstance(image, str | pygame.Surface | PosixPath | WindowsPath | None):
+            raise TypeError(_TYPE_MSG("image", type(image), "str, pygame.Surface, Path, None"))
         if command and callable(command):
             self.__command = command
         else:
@@ -59,66 +67,76 @@ class Button:
         if isinstance(args, list | tuple):
             self.__args = args
         else:
-            raise TypeError(f"invalid type for args: {type(args)}. Expected: list, tuple")
+            raise TypeError(_TYPE_MSG("args", type(args), "list, tuple"))
         if isinstance(use_thread, bool):
             self.__use_thread = use_thread
         else:
-            raise TypeError(f"invalid type for use_thread: {type(use_thread)}. Expected: bool")
+            raise TypeError(_TYPE_MSG("use_thread", type(use_thread), "bool"))
         if isinstance(state, str):
             self.__state = state.lower()
             if self.__state not in ("normal", "disabled"):
-                raise ValueError(f"invalid value for state: {state}. Expected: \"normal\""
-                                 "or \"disabled\"")
+                raise ValueError(_VAL_MSG("state", state, "\"normal\", \"disabled\""))
         else:
-            raise TypeError(f"invalid type for state: {type(state)}. Expected: str")
+            raise TypeError(_TYPE_MSG("state", state, "str"))
         if isinstance(border_radius, int):
             self.__border_radius = border_radius
         else:
-            raise TypeError(f"invalid type for border_radius: {type(border_radius)}."
-                            " Expected: str")
-        if isinstance(text_bg_color, str):
-            if re.match(HEX_COLOR_PATTERN, text_bg_color):
-                self.__text_color = text_bg_color
+            raise TypeError(_TYPE_MSG("border_radius", border_radius, "int"))
+        if isinstance(text_color, str):
+            if re.match(_HEX_COLOR_PATTERN, text_color):
+                self.__text_color = text_color
             else:
-                raise ValueError(f"invalid value for text_bg_color: {text_bg_color}."
-                                 " Please use a valid 6-digit HEX number")
+                raise ValueError(_VAL_MSG("text_color", text_color, "6-digit HEX value"))
         else:
-            raise TypeError(f"invalid type for text_bg_color: {type(text_bg_color)}."
-                            " Expected: str")
+            raise TypeError(_TYPE_MSG("text_color", text_color, "str"))
         if isinstance(disabled_color, str):
-            if re.match(HEX_COLOR_PATTERN, disabled_color):
+            if re.match(_HEX_COLOR_PATTERN, disabled_color):
                 self.__disabled_color = disabled_color
             else:
-                raise ValueError(f"invalid value for disabled_color: {disabled_color}."
-                                 " Please use a valid 6-digit HEX number")
+                raise ValueError(_VAL_MSG("disabled_color", disabled_color, "6-digit HEX value"))
         else:
-            raise TypeError(f"invalid type for disabled_color: {type(disabled_color)}."
-                            " Expected: str")
+            raise TypeError(_TYPE_MSG("disabled_color", disabled_color, "str"))
         if isinstance(normal_color, str):
-            if re.match(HEX_COLOR_PATTERN, normal_color):
+            if re.match(_HEX_COLOR_PATTERN, normal_color):
                 self.__normal_color = normal_color
             else:
-                raise ValueError(f"invalid value for normal_color: {normal_color}."
-                                 " Please use a valid 6-digit HEX number")
+                raise ValueError(_VAL_MSG("normal_color", normal_color, "6-digit HEX value"))
         else:
-            raise TypeError(f"invalid type for normal_color: {type(normal_color)}."
-                            " Expected: str")
+            raise TypeError(_TYPE_MSG("normal_color", normal_color, "str"))
         if isinstance(click_color, str):
-            if re.match(HEX_COLOR_PATTERN, click_color):
+            if re.match(_HEX_COLOR_PATTERN, click_color):
                 self.__click_color = click_color
             else:
-                raise ValueError(f"invalid value for click_color: {click_color}."
-                                 " Please use a valid 6-digit HEX number")
+                raise ValueError(_VAL_MSG("click_color", click_color, "6-digit HEX value"))
         else:
-            raise TypeError(f"invalid type for click_color: {type(click_color)}."
-                            " Expected: str")
-        if self.__state == NORMAL:
+            raise TypeError(_TYPE_MSG("click_color", click_color, "str"))
+
+        if self.__state == _NORMAL:
             self.__button_color = self.__normal_color
         else:
             self.__button_color = self.__disabled_color
         self.__pressed = False
         self.__function_executed = False
-
+        
+        if image is None:
+            self.__image = None
+        else:
+            self.__image = self.__create_image_surface(image)
+        
+    def __create_image_surface(self, image):
+        if isinstance(image, str):
+            im_path = Path(image)
+            if not im_path.exists() or not im_path.is_file():
+                return None
+            return pygame.image.load(image).convert_alpha()
+        elif isinstance(image, PosixPath | WindowsPath):
+            if not image.exists() or not image.is_file():
+                return None
+            return pygame.image.load(str(image)).convert_alpha()
+        elif isinstance(image, pygame.Surface):
+            return image.convert_alpha()
+        else:
+            return None
 
     def place(self, x: int, y: int, width: int, height: int):
         """Place button on Surface
@@ -129,17 +147,19 @@ class Button:
             width (int): Button's width
             height (int): Button's height
         """
+        if not self.__image is None:
+            self.__image = pygame.transform.scale(self.__image, (width, height)).convert_alpha()
         self.__top_rect = pygame.Rect((x, y), (width, height))
         self.__text_surface = self.__font.render(self.__text, True, self.__text_color)
-        self.__text_rect = self.__text_surface.get_rect(
-            center=self.__top_rect.center)
+        self.__text_rect = self.__text_surface.get_rect(topleft=self.__top_rect.topleft)
         self.__text_rect.center = self.__top_rect.center
-
         pygame.draw.rect(self.__screen, self.__button_color, self.__top_rect,
                          border_radius=self.__border_radius)
+        if not self.__image is None:
+            im_rect = self.__text_surface.get_rect(topleft=self.__top_rect.topleft)
+            self.__screen.blit(self.__image, im_rect)
         self.__screen.blit(self.__text_surface, self.__text_rect)
-        self.check_click()
-
+        self.__check_click()
 
     def config(self, text: str | None = ..., font: pygame.font.Font | None = ...,
                command: Callable[[], Any] | str = ..., border_radius: int | None = ...,
@@ -173,44 +193,46 @@ class Button:
                 raise ValueError(f"invalid value for state: {state}. Expected: "
                                  "\"normal\" or \"disabled\"")
             self.__state = state.lower()
-            if self.__state == NORMAL:
+            if self.__state == _NORMAL:
                 self.__button_color = self.__normal_color
-            elif self.__state == DISABLED:
+            elif self.__state == _DISABLED:
                 self.__button_color = self.__disabled_color
         if isinstance(args, tuple | list):
             self.__args = tuple(args)
         if isinstance(border_radius, int) and border_radius >= 0:
             self.__border_radius = border_radius
-        if isinstance(text_color, str) and re.match(HEX_COLOR_PATTERN, text_color):
+        if isinstance(text_color, str) and re.match(_HEX_COLOR_PATTERN, text_color):
             self.__text_color = text_color
-        if isinstance(disabled_color, str) and re.match(HEX_COLOR_PATTERN, disabled_color):
+        if isinstance(disabled_color, str) and re.match(_HEX_COLOR_PATTERN, disabled_color):
             self.__disabled_color = disabled_color
-        if isinstance(normal_color, str) and re.match(HEX_COLOR_PATTERN, normal_color):
+        if isinstance(normal_color, str) and re.match(_HEX_COLOR_PATTERN, normal_color):
             self.__normal_color = normal_color
-        if isinstance(click_color, str) and re.match(HEX_COLOR_PATTERN, click_color):
+        if isinstance(click_color, str) and re.match(_HEX_COLOR_PATTERN, click_color):
             self.__click_color = click_color
 
-
-    def check_click(self):
+    def __check_click(self):
         """Check button click
         """
-        if self.__state == DISABLED:
+        if self.__state == _DISABLED:
             return
         mouse_pos = pygame.mouse.get_pos()
         if not self.__top_rect.collidepoint(mouse_pos):
             return
         if pygame.mouse.get_pressed()[0]:
-            self.__button_color = self.__click_color
+            if self.__image is None:
+                self.__button_color = self.__click_color
+            else:
+                self.__image.set_alpha(100)
             self.__pressed = True
-            wc = lambda: Thread(target=self.wait_click).start()
+            wc = lambda: Thread(target=self.__wait_click).start()
             wc()
         else:
-            wc = Thread(target=self.wait_click)
+            wc = Thread(target=self.__wait_click)
             wc.start()
             wc.join()
 
 
-    def wait_click(self):
+    def __wait_click(self):
         if not self.__pressed:
             return
         while pygame.mouse.get_pressed()[0]:
@@ -235,4 +257,7 @@ class Button:
                 self.__command()
                 self.__function_executed = False
         self.__pressed = False
-        self.__button_color = self.__normal_color
+        if self.__image is None:
+            self.__button_color = self.__normal_color
+        else:
+            self.__image.set_alpha(255)
