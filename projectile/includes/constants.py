@@ -2,7 +2,7 @@
 Constants for projectile motion
 """
 
-SIZE = (600, 600)
+SIZE = (1200, 600)
 WIDTH = SIZE[0]
 HEIGHT = SIZE[1]
 FPS = 60

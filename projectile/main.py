@@ -1,34 +1,12 @@
 """
 Main file for projectile motion
 
-Imports:
-- Path from pathlib
-- numpy (as np)
-- pymunk
-- pygame
-- Label from root includes
-- Projectile and Boundary from project's includes
-- Camera from project's includes
-- Constants from project's includes
-
-Warnings:
-- Zoom function is not working correctly. Press <Space> to reset zoom and camera position
-
-Controls:
-- W/A/S/D                    : Camera movement. Works like most game out there.
-- Space                      : Reset camera position and zoom.
-- Backspace                  : Delete a projectile
-- C                          : Create a new projectile at mouse position
-- Click & Drag on projectile : Select, aim and shoot projectile
-- Click on empty space       : Deselect selected projectile
-
-Feature roadmap:
-###### Goal to achieve by showcase day
+Goal:
+- Add/Delete object lag fix
+- Add object list
+- Change BG
 • Fix zoom feature
 • Add widgets allowing users to:
-    - Create static obstacle of fixed shape and various size at specified locations
-      (Square, Rectangle, Triangle (isosceles), Diamond, Trapezoid, Circle, Rhombus)
-    - A field to name new obstacle
     ### Maybe
     - In-game setting UI, allowing users to modify:
         + Camera's panning speed
@@ -41,11 +19,10 @@ Feature roadmap:
         + Invert gravity
         + Change impulse force modifier
     ###
-    - Delete obstacles (by name)
     - Move obstacle (by name)
     - Reset game window
-    - Hiding widgets
 """
+import time
 from pathlib import Path
 from collections import deque
 
@@ -55,7 +32,6 @@ from pymunk.pygame_util import *
 from pymunk.vec2d import Vec2d
 import pygame
 from pygame.locals import *
-from pyrsistent import s
 
 from includes.label import Label
 from includes.button import Button
@@ -67,7 +43,7 @@ try:
     from projectile.includes.constants import SIZE, GRAY, RED, FPS, \
         G_HORIZONTAL, G_VERTICAL
 except ImportError:
-    SIZE = (600, 600)
+    SIZE = (1200, 600)
     WIDTH = SIZE[0]
     HEIGHT = SIZE[1]
     FPS = 60
@@ -89,7 +65,7 @@ class ProjectileMain:
         self.__screen = pygame.display.set_mode(SIZE)
         self.__clock = pygame.time.Clock()
         self.__draw_options = DrawOptions(self.__screen)
-        self.__boundary = Boundary(self.__space.static_body, (0, 0), (300, 300))
+        self.__boundary = Boundary(self.__space.static_body, (0, 0), (1200, 600))
         self.__projectile = Projectile((100, 100), 25)
         self.__label_font = pygame.font.Font(rf"{Path(__file__).parent}\assets\fonts\times.ttf", 20)
         self.__desc_font = pygame.font.Font(rf"{Path(__file__).parent}\assets\fonts\times.ttf", 20)
@@ -97,13 +73,14 @@ class ProjectileMain:
         self.__entry_font = pygame.font.Font(rf"{Path(__file__).parent}\assets\fonts\times.ttf", 20)
         self.__camera = Camera(5, 0.01, 0.01)
         self.__ignore_zone = pygame.Rect(0, 0, 0, 0)
-        self.__selected_object = ObjectSelector.Circle.name
+        self.__selected_object = ObjectSelector.Line.name
         self.__object_queue = deque(ObjectSelector)
         self.__is_menu_visible = True
         self.__is_description_visible = False
         self.__ready_to_step = False
         self.__during_query = False
         self.__show_info = False
+        self.__toggling = False
         self.__impulse = -1000
         self.__info_frame = 0
         self.__objects = []
@@ -122,22 +99,26 @@ class ProjectileMain:
         """
         self.__label_info = Label(self.__screen, self.__label_font, "", "#000000", "#E0E0E0",
                                   'center')
-        self.__label_object_name = Label(self.__screen, self.__label_font, f"{self.__selected_object}",
-                                         "#FFFFFF", "#393939")
+        self.__label_object_name = Label(self.__screen, self.__label_font,
+                                         f"{self.__selected_object}", "#FFFFFF", "#393939")
         self.__label_name = Label(self.__screen, self.__desc_font, "Name",
                                   "#FFFFFF", "#393939")
         self.__label_multiplier = Label(self.__screen, self.__desc_font, "Multiplier (Radius)",
                                         "#FFFFFF", "#393939")
         self.__label_position = Label(self.__screen, self.__desc_font, "Position (x, y)",
                                       "#FFFFFF", "#393939")
-        self.__btn_up = Button(self.__screen, self.__button_font, "/\\", self.__previous_object)
-        self.__btn_down = Button(self.__screen, self.__button_font, "\/", self.__next_object)
+        self.__btn_up = Button(self.__screen, self.__button_font, "/\\",
+                               command=self.__previous_object, use_thread=False)
+        self.__btn_down = Button(self.__screen, self.__button_font, "\/",
+                                 command=self.__next_object, use_thread=False)
         self.__btn_create_object = Button(self.__screen, self.__button_font,
                                           f"Create {self.__selected_object}",
-                                          command=self.__create, args=(self.__selected_object,))
+                                          command=self.__create, args=(self.__selected_object,),
+                                          use_thread=False)
         self.__btn_remove_object = Button(self.__screen, self.__button_font,
                                           "Remove Object By Name",
-                                          command=self.__remove)
+                                          command=self.__remove,
+                                          use_thread=False)
         self.__btn_menu_visibility = Button(self.__screen, self.__button_font,
                                       "Collapse Menu", command=self.__toggle_menu_visibility,
                                       use_thread=False)
@@ -148,11 +129,14 @@ class ProjectileMain:
         self.__entry_name = Entry(self.__screen, self.__entry_font, "",
                                   border_width=3, clear_on_focus=True)
         self.__entry_multiplier = Entry(self.__screen, self.__entry_font, "",
-                                  border_width=3, clear_on_focus=True, regex_filter=r"([0-9])+")
+                                  border_width=3, clear_on_focus=True,
+                                  regex_filter=r"^( )?([0-9])+( )?$")
         self.__entry_pos_x = Entry(self.__screen, self.__entry_font, "", bg=GRAY + "00",
-                                   border_width=3, regex_filter=r"([0-9])+", clear_on_focus=True)
+                                   border_width=3, regex_filter=r"^( )?([0-9])+( )?$",
+                                   clear_on_focus=True)
         self.__entry_pos_y = Entry(self.__screen, self.__entry_font, "", bg=GRAY + "00",
-                                   border_width=3, regex_filter=r"([0-9])+", clear_on_focus=True)
+                                   border_width=3, regex_filter=r"([0-9])+",
+                                   clear_on_focus=True)
         self.__entries = [self.__entry_name, self.__entry_multiplier,
                           self.__entry_pos_x, self.__entry_pos_y]
 
@@ -165,21 +149,24 @@ class ProjectileMain:
             if self.__info_frame >= FPS * 3:
                 self.__show_info = False
         if self.__is_menu_visible:
-            self.__btn_up.place(400, 60, 200, 25)
-            self.__label_object_name.place(400, 85, 200, 50)
-            self.__btn_down.place(400, 135, 200, 25)
-            self.__btn_create_object.place(400, 305, 200, 50)
-            self.__btn_remove_object.place(400, 360, 200, 50)
-            self.__btn_description_visibility.place(400, 415, 200, 50)
-            self.__entry_name.place(400, 175, 200, 35)
-            self.__entry_multiplier.place(400, 215, 200, 35)
-            self.__entry_pos_x.place(400, 255, 95, 35)
-            self.__entry_pos_y.place(505, 255, 95, 35)
+            self.__btn_up.place(1000, 60, 200, 25)
+            self.__label_object_name.place(1000, 85, 200, 50)
+            self.__btn_down.place(1000, 135, 200, 25)
+            self.__btn_create_object.place(1000, 305, 200, 50)
+            self.__btn_remove_object.place(1000, 360, 200, 50)
+            self.__btn_description_visibility.place(1000, 415, 200, 50)
+            self.__entry_name.place(1000, 175, 200, 35)
+            self.__entry_multiplier.place(1000, 215, 200, 35)
+            self.__entry_pos_x.place(1000, 255, 95, 35)
+            self.__entry_pos_y.place(1105, 255, 95, 35)
         if self.__is_description_visible:
-            self.__label_name.place(200, 175, 200, 35)
-            self.__label_position.place(200, 255, 200, 35)
-            self.__label_multiplier.place(200, 215, 200, 35)
-        self.__btn_menu_visibility.place(400, 470, 200, 50)
+            self.__label_name.place(800, 175, 200, 35)
+            self.__label_position.place(800, 255, 200, 35)
+            self.__label_multiplier.place(800, 215, 200, 35)
+        if self.__is_menu_visible:
+            self.__btn_menu_visibility.place(1000, 470, 200, 50)
+        else:
+            self.__btn_menu_visibility.place(1150, 470, 50, 50)
 
     def __update_create_button(self):
         self.__label_object_name.config(text=f"{self.__selected_object}")
@@ -187,9 +174,12 @@ class ProjectileMain:
                                         command=self.__create, args=(self.__selected_object,))
 
     def __previous_object(self):
+        self.__btn_up.config(state="disabled")
         self.__object_queue.rotate(1)
         self.__selected_object = self.__object_queue[0].name
         self.__update_create_button()
+        time.sleep(0.5)
+        self.__btn_up.config(state="normal")
 
     def __create(self, shape):
         if self.__ready_to_step or self.__during_query:
@@ -233,25 +223,44 @@ class ProjectileMain:
                     self.__objects.remove(object)
 
     def __next_object(self):
+        self.__btn_down.config(state="disabled")
         self.__object_queue.rotate(-1)
         self.__selected_object = self.__object_queue[0].name
         self.__update_create_button()
+        time.sleep(0.5)
+        self.__btn_down.config(state="normal")
         
     def __toggle_menu_visibility(self):
-        if self.__is_menu_visible:
-            self.__is_menu_visible = False
-            self.__btn_menu_visibility.config("Expand")
-        else:
-            self.__is_menu_visible = True
-            self.__btn_menu_visibility.config("Collapse")
+        if not self.__toggling:
+            self.__btn_description_visibility.config(state="disabled")
+            self.__btn_menu_visibility.config(state="disabled")
+            self.__toggling = True
+            if self.__is_menu_visible:
+                self.__is_menu_visible = False
+                self.__btn_menu_visibility.config("+")
+            else:
+                self.__is_menu_visible = True
+                self.__btn_menu_visibility.config("Collapse")
+            time.sleep(0.5)
+            self.__btn_description_visibility.config(state="normal")
+            self.__btn_menu_visibility.config(state="normal")
+            self.__toggling = False
         
     def __toggle_desc_visibility(self):
-        if self.__is_description_visible:
-            self.__is_description_visible = False
-            self.__btn_description_visibility.config("Show Description")
-        else:
-            self.__is_description_visible = True
-            self.__btn_description_visibility.config("Hide Description")
+        if not self.__toggling:
+            self.__btn_description_visibility.config(state="disabled")
+            self.__btn_menu_visibility.config(state="disabled")
+            self.__toggling = True
+            if self.__is_description_visible:
+                self.__is_description_visible = False
+                self.__btn_description_visibility.config("Show Description")
+            else:
+                self.__is_description_visible = True
+                self.__btn_description_visibility.config("Hide Description")
+            time.sleep(0.5)
+            self.__btn_description_visibility.config(state="normal")
+            self.__btn_menu_visibility.config(state="normal")
+            self.__toggling = False
 
     def __handle_camera_movement(self):
         if any([entry.get_status() for entry in self.__entries]):
