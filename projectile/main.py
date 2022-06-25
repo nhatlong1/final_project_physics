@@ -2,7 +2,6 @@
 Main file for projectile motion
 
 Goal:
-- Add/Delete object lag fix
 - Add object list
 - Change BG
 • Fix zoom feature
@@ -77,6 +76,8 @@ class ProjectileMain:
         self.__object_queue = deque(ObjectSelector)
         self.__is_menu_visible = True
         self.__is_description_visible = False
+        self.__desc_visible_before_pull = False
+        self.__menu_visible_before_pull = True
         self.__ready_to_step = False
         self.__during_query = False
         self.__show_info = False
@@ -108,24 +109,20 @@ class ProjectileMain:
         self.__label_position = Label(self.__screen, self.__desc_font, "Position (x, y)",
                                       "#FFFFFF", "#393939")
         self.__btn_up = Button(self.__screen, self.__button_font, "/\\",
-                               command=self.__previous_object, use_thread=False)
+                               command=self.__previous_object)
         self.__btn_down = Button(self.__screen, self.__button_font, "\/",
-                                 command=self.__next_object, use_thread=False)
+                                 command=self.__next_object)
         self.__btn_create_object = Button(self.__screen, self.__button_font,
                                           f"Create {self.__selected_object}",
-                                          command=self.__create, args=(self.__selected_object,),
-                                          use_thread=False)
+                                          command=self.__create, args=(self.__selected_object,))
         self.__btn_remove_object = Button(self.__screen, self.__button_font,
                                           "Remove Object By Name",
-                                          command=self.__remove,
-                                          use_thread=False)
+                                          command=self.__remove)
         self.__btn_menu_visibility = Button(self.__screen, self.__button_font,
-                                      "Collapse Menu", command=self.__toggle_menu_visibility,
-                                      use_thread=False)
+                                      "Collapse Menu", command=self.__toggle_menu_visibility)
         self.__btn_description_visibility = Button(self.__screen, self.__button_font,
                                                    "Show Descriptions",
-                                                   command=self.__toggle_desc_visibility,
-                                                   use_thread=False)
+                                                   command=self.__toggle_desc_visibility)
         self.__entry_name = Entry(self.__screen, self.__entry_font, "",
                                   border_width=3, clear_on_focus=True)
         self.__entry_multiplier = Entry(self.__screen, self.__entry_font, "",
@@ -139,15 +136,15 @@ class ProjectileMain:
                                    clear_on_focus=True)
         self.__entries = [self.__entry_name, self.__entry_multiplier,
                           self.__entry_pos_x, self.__entry_pos_y]
+        self.__buttons = [self.__btn_up, self.__btn_down, self.__btn_create_object,
+                          self.__btn_remove_object, self.__btn_menu_visibility,
+                          self.__btn_description_visibility]
 
     def __draw_widgets(self):
         """Draw widgets on screen
         """
         if self.__show_info:
-            self.__info_frame += 1
             self.__label_info.place(0, 0, SIZE[0], 75)
-            if self.__info_frame >= FPS * 3:
-                self.__show_info = False
         if self.__is_menu_visible:
             self.__btn_up.place(1000, 60, 200, 25)
             self.__label_object_name.place(1000, 85, 200, 50)
@@ -182,14 +179,23 @@ class ProjectileMain:
         self.__btn_up.config(state="normal")
 
     def __create(self, shape):
-        if self.__ready_to_step or self.__during_query:
+        while self.__ready_to_step or self.__during_query:
+            self.__btn_create_object.config(state="disabled")
+            self.__btn_remove_object.config(state="disabled")
+            for entry in self.__entries:
+                entry.config(state="disabled")
             self.__show_info = True
-            self.__label_info.config(text="Can not create object during space step or query")
-        elif not self.__ready_to_step and not self.__during_query:
+            self.__label_info.config(text="Waiting for space to step or query to finish")
+        else:
             if any([not bool(entry.get(False)) for entry in self.__entries]):
                 self.__show_info = True
                 self.__label_info.config("Please fill all the fields")
                 return
+            self.__show_info = False
+            self.__btn_create_object.config(state="normal")
+            self.__btn_remove_object.config(state="normal")
+            for entry in self.__entries:
+                entry.config(state="normal")
             if self.__selected_object == "Circle":
                 tmp_object = StaticObstacle(self.__entry_name.get(),
                                             (self.__entry_pos_x.get(as_type=int),
@@ -201,7 +207,6 @@ class ProjectileMain:
                                             self.__entry_pos_y.get(as_type=int)), shape,
                                             multiplier=self.__entry_multiplier.get(as_type=int))
             self.__objects.append(tmp_object)
-            self.__show_info = False
             self.__label_info.config(text="")
             self.__space.add(tmp_object.body, tmp_object.shape)
 
@@ -229,7 +234,7 @@ class ProjectileMain:
         self.__update_create_button()
         time.sleep(0.5)
         self.__btn_down.config(state="normal")
-        
+
     def __toggle_menu_visibility(self):
         if not self.__toggling:
             self.__btn_description_visibility.config(state="disabled")
@@ -237,15 +242,19 @@ class ProjectileMain:
             self.__toggling = True
             if self.__is_menu_visible:
                 self.__is_menu_visible = False
+                self.__menu_visible_before_pull = False
                 self.__btn_menu_visibility.config("+")
+                if self.__is_description_visible:
+                    self.__toggle_desc_visibility()
             else:
                 self.__is_menu_visible = True
+                self.__menu_visible_before_pull = True
                 self.__btn_menu_visibility.config("Collapse")
             time.sleep(0.5)
             self.__btn_description_visibility.config(state="normal")
             self.__btn_menu_visibility.config(state="normal")
             self.__toggling = False
-        
+
     def __toggle_desc_visibility(self):
         if not self.__toggling:
             self.__btn_description_visibility.config(state="disabled")
@@ -253,9 +262,11 @@ class ProjectileMain:
             self.__toggling = True
             if self.__is_description_visible:
                 self.__is_description_visible = False
+                self.__desc_visible_before_pull = False
                 self.__btn_description_visibility.config("Show Description")
             else:
                 self.__is_description_visible = True
+                self.__desc_visible_before_pull = True
                 self.__btn_description_visibility.config("Hide Description")
             time.sleep(0.5)
             self.__btn_description_visibility.config(state="normal")
@@ -274,7 +285,7 @@ class ProjectileMain:
             @ pymunk.Transform.rotation(self.__camera_transform[2])
             @ pymunk.Transform.translation(-int(SIZE[0] / 2), -int(SIZE[1] / 2))
         )
-        
+
     def __create_projectile(self):
         if any([entry.get_status() for entry in self.__entries]):
             return
@@ -287,6 +298,23 @@ class ProjectileMain:
         )
         self.__projectile = Projectile(pg_position, radius=20)
         self.__space.add(self.__projectile.body, self.__projectile.shape)
+
+    def __pulling_handle(self):
+        if self.__pulling:
+            if self.__is_menu_visible:
+                self.__btn_menu_visibility.config(state="disabled", text="+")
+                self.__is_menu_visible = False
+                self.__is_description_visible = False
+            else:
+                self.__is_description_visible = False
+                self.__btn_menu_visibility.config(state="disabled")
+        else:
+            self.__is_menu_visible = self.__menu_visible_before_pull
+            self.__is_description_visible = self.__desc_visible_before_pull
+            if self.__is_menu_visible:
+                self.__btn_menu_visibility.config(state="normal", text="Collapse")
+            else:
+                self.__btn_menu_visibility.config(state="normal")
 
     def mainloop(self):
         """Mainloop
@@ -351,6 +379,7 @@ class ProjectileMain:
                         active_body.apply_impulse_at_local_point(impulse)
 
             self.__ready_to_step = True
+            self.__pulling_handle()
             self.__screen.fill(GRAY)
             self.__handle_camera_movement()
             self.__space.debug_draw(self.__draw_options)

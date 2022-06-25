@@ -23,13 +23,19 @@ class Button:
 
     Pygame widget Button
     """
-    def __init__(self, master: pygame.Surface, font: pygame.font.Font, text: str | None = ...,
+    def __init__(self, master: pygame.Surface,
+                 font: pygame.font.Font,
+                 text: str | None = ...,
                  image: str | pygame.Surface | PosixPath | WindowsPath | None = None,
-                 command: Callable[[], Any] | str = ..., args: list | tuple = (),
+                 command: Callable[[], Any] | str = ...,
+                 args: list | tuple = (),
                  use_thread: bool = True,
-                 state: Literal["normal", "disabled"] = "normal", border_radius: int | None = 0,
-                 text_color: str = _WHITE, disabled_color: str = _DEF_DISABLED_STATE,
-                 normal_color: str = _DEF_NORMAL_STATE, click_color: str = _DEF_DOWN_STATE):
+                 state: Literal["normal", "disabled"] = "normal",
+                 border_radius: int | None = 0,
+                 text_color: str = _WHITE,
+                 disabled_color: str = _DEF_DISABLED_STATE,
+                 normal_color: str = _DEF_NORMAL_STATE,
+                 click_color: str = _DEF_DOWN_STATE):
         """Button:
 
         Args:
@@ -161,17 +167,23 @@ class Button:
         self.__screen.blit(self.__text_surface, self.__text_rect)
         self.__check_click()
 
-    def config(self, text: str | None = ..., font: pygame.font.Font | None = ...,
-               command: Callable[[], Any] | str = ..., border_radius: int | None = ...,
-               state: Literal["normal", "disabled"] = ..., args: list | tuple | None = ...,
-               text_color: str = ..., disabled_color: str = ...,
-               normal_color: str = ..., click_color: str = ...):
+    def config(self, text: str | None = ...,
+               font: pygame.font.Font | None = ...,
+               command: Callable[[], Any] | str = ...,
+               args: list | tuple | None = ...,
+               border_radius: int | None = ...,
+               state: Literal["normal", "disabled"] = ...,
+               text_color: str = ...,
+               disabled_color: str = ...,
+               normal_color: str = ...,
+               click_color: str = ...):
         """Configure button attributes
 
         Args:
             text (str | None, optional): Change button text. Optional
             font (pygame.font.Font | None, optional): Change button font. Optional
             command (Callable[[], Any] | str, optional): Change command called. Optional
+            args (list | tuple): Change command's argument list
             border_radius (int | None, optional): Change border radius. Optional
             state (str): Enable/disable button
             text_color (str): text color
@@ -235,9 +247,11 @@ class Button:
     def __wait_click(self):
         if not self.__pressed:
             return
-        while pygame.mouse.get_pressed()[0]:
-            continue
-        if not pygame.mouse.get_pressed()[0] and not self.__function_executed:
+        elif any(pygame.mouse.get_pressed()):
+            return
+        elif self.__function_executed:
+            return
+        elif not any(pygame.mouse.get_pressed()) and not self.__function_executed:
             if self.__use_thread and self.__args:
                 self.__function_executed = True
                 cd = Thread(target=self.__command, args=tuple(self.__args))
@@ -256,8 +270,8 @@ class Button:
                 self.__function_executed = True
                 self.__command()
                 self.__function_executed = False
-        self.__pressed = False
-        if self.__image is None:
-            self.__button_color = self.__normal_color
-        else:
-            self.__image.set_alpha(255)
+            self.__pressed = False
+            if self.__image is None:
+                self.__button_color = self.__normal_color
+            else:
+                self.__image.set_alpha(255)
