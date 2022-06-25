@@ -211,16 +211,25 @@ class ProjectileMain:
             self.__space.add(tmp_object.body, tmp_object.shape)
 
     def __remove(self):
-        if self.__ready_to_step or self.__during_query:
+        while self.__ready_to_step or self.__during_query:
+            self.__btn_create_object.config(state="disabled")
+            self.__btn_remove_object.config(state="disabled")
+            for entry in self.__entries:
+                entry.config(state="disabled")
             self.__show_info = True
-            self.__label_info.config(text="Can not remove object during space step or query")
-        elif not self.__ready_to_step and not self.__during_query:
+            self.__label_info.config(text="Waiting for space to step or query to finish")
+        else:
             if not bool(self.__entry_name.get(False)):
                 self.__show_info = True
                 self.__label_info.config("Please fill \"name\" field")
+                self.__btn_create_object.config(state="normal")
+                self.__btn_remove_object.config(state="normal")
                 return
             self.__show_info = False
-            self.__label_info.config(text="")
+            self.__btn_create_object.config(state="normal")
+            self.__btn_remove_object.config(state="normal")
+            for entry in self.__entries:
+                entry.config(state="normal")
             remove_name = self.__entry_name.get()
             for object in self.__objects:
                 if object.name == remove_name:
