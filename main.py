@@ -9,6 +9,7 @@ from includes.constants import WIN_WIDTH, WIN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGH
     GREEN
 from freefall.main import FreeFallSim
 from freefall.main_2 import FreeFallSimExp
+from light.main import LightRefraction
 from pendulum.main import PendulumMain
 from projectile.main import ProjectileMain
 
@@ -26,10 +27,9 @@ class Main:
                            f"+{int(SCREEN_WIDTH / 2 - WIN_WIDTH / 2)}"
                            f"+{int(SCREEN_HEIGHT / 2 - WIN_HEIGHT / 2)}")
         self.__root.protocol("WM_DELETE_WINDOW", self.protocol_quit)
-        
+
         if isinstance(ff_exp, bool):
             self.__ff_exp = ff_exp
-
 
     def init_widget(self):
         """Init widget.
@@ -44,7 +44,9 @@ class Main:
         self.__projectile_button = tk.Button(self.__root, text="Projectile Motion",
                                            command=self.start_pms,
                                            font=("Times New Roman", 25), bg=GREEN)
-
+        self.__light_refraction = tk.Button(self.__root, text="Light Refraction",
+                                           command=self.start_light,
+                                           font=("Times New Roman", 25), bg=GREEN)
 
     def draw_widget(self):
         """Draw widget
@@ -53,7 +55,7 @@ class Main:
         self.__freefall_button.place(x=100, y=75, width=400, height=100)
         self.__pendulum_button.place(x=100, y=180, width=400, height=100)
         self.__projectile_button.place(x=100, y=285, width=400, height=100)
-
+        self.__light_refraction.place(x=100, y=390, width=400, height=100)
 
     def start_ff(self):
         """start_ff
@@ -69,7 +71,6 @@ class Main:
         ffs.mainloop()
         self.__root.deiconify()
 
-
     def start_pen(self):
         """start_pen
         Start Pendulum simulation
@@ -79,8 +80,10 @@ class Main:
         pendulum.init_widgets()
         pendulum.mainloop()
         self.__root.deiconify()
-        
-        
+
+    def legacy_start(self):
+        print("Deprecated")
+
     def start_pms(self):
         self.__root.withdraw()
         pms = ProjectileMain()
@@ -88,13 +91,18 @@ class Main:
         pms.mainloop()
         self.__root.deiconify()
 
+    def start_light(self):
+        self.__root.withdraw()
+        light = LightRefraction()
+        light.init_widgets()
+        light.mainloop()
+        self.__root.deiconify()
 
     def protocol_quit(self):
         """For root.protocol
         """
         self.__root.destroy()
         sys.exit()
-
 
     def run(self):
         self.__root.mainloop()
