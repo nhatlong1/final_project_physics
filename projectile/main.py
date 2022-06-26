@@ -2,7 +2,6 @@
 Main file for projectile motion
 
 Goal:
-- Add object list
 - Change BG
 • Fix zoom feature
 • Add widgets allowing users to:
@@ -35,6 +34,7 @@ from pygame.locals import *
 from includes.label import Label
 from includes.button import Button
 from includes.entry import Entry
+from includes.listbox import Listbox
 from projectile.includes.sprites import Projectile, Boundary, StaticObstacle
 from projectile.includes.camera import Camera
 from projectile.includes.selector import ObjectSelector
@@ -70,6 +70,7 @@ class ProjectileMain:
         self.__desc_font = pygame.font.Font(rf"{Path(__file__).parent}\assets\fonts\times.ttf", 20)
         self.__button_font = pygame.font.Font(rf"{Path(__file__).parent}\assets\fonts\times.ttf", 15)
         self.__entry_font = pygame.font.Font(rf"{Path(__file__).parent}\assets\fonts\times.ttf", 20)
+        self.__listbox_font = pygame.font.Font(rf"{Path(__file__).parent}\assets\fonts\times.ttf", 25)
         self.__camera = Camera(5, 0.01, 0.01)
         self.__ignore_zone = pygame.Rect(0, 0, 0, 0)
         self.__selected_object = ObjectSelector.Line.name
@@ -78,6 +79,7 @@ class ProjectileMain:
         self.__is_description_visible = False
         self.__desc_visible_before_pull = False
         self.__menu_visible_before_pull = True
+        self.__is_object_list_visible = False
         self.__ready_to_step = False
         self.__during_query = False
         self.__show_info = False
@@ -118,11 +120,14 @@ class ProjectileMain:
         self.__btn_remove_object = Button(self.__screen, self.__button_font,
                                           "Remove Object By Name",
                                           command=self.__remove)
-        self.__btn_menu_visibility = Button(self.__screen, self.__button_font,
-                                      "Collapse Menu", command=self.__toggle_menu_visibility)
+        self.__btn_show_object_list = Button(self.__screen, self.__button_font,
+                                             "Show Object List",
+                                             command=self.__show_object_list)
         self.__btn_description_visibility = Button(self.__screen, self.__button_font,
                                                    "Show Descriptions",
                                                    command=self.__toggle_desc_visibility)
+        self.__btn_menu_visibility = Button(self.__screen, self.__button_font,
+                                      "Collapse Menu", command=self.__toggle_menu_visibility)
         self.__entry_name = Entry(self.__screen, self.__entry_font, "",
                                   border_width=3, clear_on_focus=True)
         self.__entry_multiplier = Entry(self.__screen, self.__entry_font, "",
@@ -134,11 +139,13 @@ class ProjectileMain:
         self.__entry_pos_y = Entry(self.__screen, self.__entry_font, "", bg=GRAY + "00",
                                    border_width=3, regex_filter=r"([0-9])+",
                                    clear_on_focus=True)
+        self.__listbox_object_list = Listbox(self.__screen, self.__listbox_font, 30, 50, 10,
+                                             bg_color="#FFFFFF", text_color="#000000")
         self.__entries = [self.__entry_name, self.__entry_multiplier,
                           self.__entry_pos_x, self.__entry_pos_y]
         self.__buttons = [self.__btn_up, self.__btn_down, self.__btn_create_object,
                           self.__btn_remove_object, self.__btn_menu_visibility,
-                          self.__btn_description_visibility]
+                          self.__btn_description_visibility, self.__btn_show_object_list]
 
     def __draw_widgets(self):
         """Draw widgets on screen
@@ -146,24 +153,27 @@ class ProjectileMain:
         if self.__show_info:
             self.__label_info.place(0, 0, SIZE[0], 75)
         if self.__is_menu_visible:
-            self.__btn_up.place(1000, 60, 200, 25)
-            self.__label_object_name.place(1000, 85, 200, 50)
-            self.__btn_down.place(1000, 135, 200, 25)
-            self.__btn_create_object.place(1000, 305, 200, 50)
-            self.__btn_remove_object.place(1000, 360, 200, 50)
-            self.__btn_description_visibility.place(1000, 415, 200, 50)
-            self.__entry_name.place(1000, 175, 200, 35)
-            self.__entry_multiplier.place(1000, 215, 200, 35)
-            self.__entry_pos_x.place(1000, 255, 95, 35)
-            self.__entry_pos_y.place(1105, 255, 95, 35)
+            self.__btn_up.place(1000, 35, 200, 25)
+            self.__label_object_name.place(1000, 60, 200, 50)
+            self.__btn_down.place(1000, 110, 200, 25)
+            self.__btn_create_object.place(1000, 280, 200, 50)
+            self.__btn_remove_object.place(1000, 335, 200, 50)
+            self.__btn_show_object_list.place(1000, 390, 200, 50)
+            self.__btn_description_visibility.place(1000, 445, 200, 50)
+            self.__entry_name.place(1000, 150, 200, 35)
+            self.__entry_multiplier.place(1000, 190, 200, 35)
+            self.__entry_pos_x.place(1000, 230, 95, 35)
+            self.__entry_pos_y.place(1105, 230, 95, 35)
+        if self.__is_object_list_visible:
+            self.__listbox_object_list.place(450, 150, 300, 300)
         if self.__is_description_visible:
             self.__label_name.place(800, 175, 200, 35)
             self.__label_position.place(800, 255, 200, 35)
             self.__label_multiplier.place(800, 215, 200, 35)
         if self.__is_menu_visible:
-            self.__btn_menu_visibility.place(1000, 470, 200, 50)
+            self.__btn_menu_visibility.place(1000, 500, 200, 50)
         else:
-            self.__btn_menu_visibility.place(1150, 470, 50, 50)
+            self.__btn_menu_visibility.place(1150, 500, 50, 50)
 
     def __update_create_button(self):
         self.__label_object_name.config(text=f"{self.__selected_object}")
@@ -196,19 +206,23 @@ class ProjectileMain:
             self.__btn_remove_object.config(state="normal")
             for entry in self.__entries:
                 entry.config(state="normal")
+            obj_name = self.__entry_name.get()
             if self.__selected_object == "Circle":
-                tmp_object = StaticObstacle(self.__entry_name.get(),
-                                            (self.__entry_pos_x.get(as_type=int),
+                tmp_object = StaticObstacle(obj_name, (self.__entry_pos_x.get(as_type=int),
                                             self.__entry_pos_y.get(as_type=int)), shape,
                                             radius=self.__entry_multiplier.get(as_type=int))
             else:
-                tmp_object = StaticObstacle(self.__entry_name.get(),
-                                            (self.__entry_pos_x.get(as_type=int),
+                tmp_object = StaticObstacle(obj_name, (self.__entry_pos_x.get(as_type=int),
                                             self.__entry_pos_y.get(as_type=int)), shape,
                                             multiplier=self.__entry_multiplier.get(as_type=int))
             self.__objects.append(tmp_object)
             self.__label_info.config(text="")
             self.__space.add(tmp_object.body, tmp_object.shape)
+            self.__listbox_object_list.add_item(obj_name, self.dummy, text=obj_name,
+                                                status="disabled")
+
+    def dummy(self):
+        print("Hello")
 
     def __remove(self):
         while self.__ready_to_step or self.__during_query:
@@ -235,6 +249,7 @@ class ProjectileMain:
                 if object.name == remove_name:
                     self.__space.remove(object.shape, object.body)
                     self.__objects.remove(object)
+                    self.__listbox_object_list.remove_item(object.name)
 
     def __next_object(self):
         self.__btn_down.config(state="disabled")
@@ -243,6 +258,14 @@ class ProjectileMain:
         self.__update_create_button()
         time.sleep(0.5)
         self.__btn_down.config(state="normal")
+        
+    def __show_object_list(self):
+        if not self.__is_object_list_visible:
+            self.__is_object_list_visible = True
+            self.__btn_show_object_list.config("Hide Object List")
+        else:
+            self.__is_object_list_visible = False
+            self.__btn_show_object_list.config("Show Object List")
 
     def __toggle_menu_visibility(self):
         if not self.__toggling:

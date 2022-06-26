@@ -77,7 +77,7 @@ class StaticObstacle:
     def __init__(self, name: str, pos: tuple | list = (), shape: str | int = "Circle",
                  multiplier: int = 1, vertices: Sequence[Tuple[int, int]] | None = (),
                  radius: int = 20, density: float | int = 1.0, friction: float | int = 0.9,
-                 elasticity: float | int = 0.0) -> None:
+                 elasticity: float | int = 0.5) -> None:
         """Obstacle class
         
         Object's shape (if not "Custom") is pre-defined and can only modified by changing it's
