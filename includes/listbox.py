@@ -176,7 +176,7 @@ class Listbox:
     def remove_item(self, name: str = ""):
         for item in self.__items:
             if item.name == name:
-                self.__items.remove(item.name)
+                self.__items.remove(item)
 
     def config_item(self, index: int, name: str = ..., command: Callable[[], Any] = ...,
                     text: str = ..., status: str = ...):
