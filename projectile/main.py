@@ -20,9 +20,11 @@ Goal:
     - Move obstacle (by name)
     - Reset game window
 """
+from threading import Thread
 import time
 from pathlib import Path
 from collections import deque
+from typing import Any, Callable
 
 import numpy as np
 import pymunk
@@ -200,6 +202,11 @@ class ProjectileMain:
             if any([not bool(entry.get(False)) for entry in self.__entries]):
                 self.__show_info = True
                 self.__label_info.config("Please fill all the fields")
+                for entry in self.__entries:
+                    entry.config(state="normal")
+                self.__btn_create_object.config(state="normal")
+                self.__btn_remove_object.config(state="normal")
+                self.__after(2, self.__remove_error_message)
                 return
             self.__show_info = False
             self.__btn_create_object.config(state="normal")
@@ -236,8 +243,11 @@ class ProjectileMain:
             if not bool(self.__entry_name.get(False)):
                 self.__show_info = True
                 self.__label_info.config("Please fill \"name\" field")
+                for entry in self.__entries:
+                    entry.config(state="normal")
                 self.__btn_create_object.config(state="normal")
                 self.__btn_remove_object.config(state="normal")
+                self.__after(2, self.__remove_error_message)
                 return
             self.__show_info = False
             self.__btn_create_object.config(state="normal")
@@ -258,6 +268,28 @@ class ProjectileMain:
         self.__update_create_button()
         time.sleep(0.5)
         self.__btn_down.config(state="normal")
+        
+    def __after(self, time_value: int, command: Callable[[], Any] | str = ...,
+                args: list | tuple = ..., use_thread_and_join: bool = True):
+        time.sleep(time_value)
+        pass_args = None
+        if isinstance(args, tuple | list):
+            pass_args = tuple(args)
+        if use_thread_and_join:
+            if pass_args:
+                th = Thread(target=command, args=pass_args)
+            else:
+                th = Thread(target=command)
+            th.start()
+            th.join()
+        else:
+            if pass_args:
+                command(*pass_args)
+            else:
+                command()
+                
+    def __remove_error_message(self):
+        self.__show_info = False
         
     def __show_object_list(self):
         if not self.__is_object_list_visible:
