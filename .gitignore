@@ -139,3 +139,6 @@ keyboard_constants.py
 *.txt
 tests/
 includes/*.md
+*_test.*
+test_*.*
+*_test_*.*
