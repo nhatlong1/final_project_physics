@@ -26,10 +26,11 @@ class Button:
     def __init__(self, master: pygame.Surface,
                  font: pygame.font.Font,
                  text: str | None = ...,
-                 image: str | pygame.Surface | PosixPath | WindowsPath | None = None,
                  command: Callable[[], Any] | str = ...,
                  args: list | tuple = (),
+                 image: str | pygame.Surface | PosixPath | WindowsPath | None = None,
                  use_thread: bool = True,
+                 allow_hold: bool = False,
                  state: Literal["normal", "disabled"] = "normal",
                  border_radius: int | None = 0,
                  text_color: str = _WHITE,
@@ -47,10 +48,16 @@ class Button:
             command (Callable[[], Any] | str, optional):
                 Function to be called when button is pressed. Optional
             args (list, tuple, optional): A list/tuple of arguments to pass in command
+            use_thread (bool, optional): Use thread to run command.
+            allow_hold (bool, optional): Allow user to hold button. WIP
             state (Literal["normal", "disabled"], optional):
                 Default state for button. Defaults to "normal"
             border_radius (int | None, optional):
                 Increase this number make button edges rounder. Defaults to -1
+            text_color (str, optional): Text color
+            disabled_color (str, optional): Disabled button color
+            normal_color (str, optional): Idle color
+            click_color (str, optional): Color when button is clicked
         """
         if isinstance(master, pygame.Surface):
             self.__screen = master
@@ -242,7 +249,6 @@ class Button:
             wc = Thread(target=self.__wait_click)
             wc.start()
             wc.join()
-
 
     def __wait_click(self):
         if not self.__pressed:

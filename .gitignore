@@ -142,3 +142,4 @@ includes/*.md
 *_test.*
 test_*.*
 *_test_*.*
+projectile/includes/ui_manager.py
