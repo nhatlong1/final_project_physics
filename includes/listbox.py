@@ -51,7 +51,10 @@ class _ListBoxItem:
                  ) -> None:
         self.__name = name
         self.__command = command
-        self.__args = args
+        if isinstance(args, list | tuple):
+            self.__args = args
+        else:
+            self.__args = None
         self.__text = text
         self.__status = status
         self.__executed = False
@@ -191,8 +194,8 @@ class Listbox:
             width (int): Listbox width
             height (int): Listbox height
         """
-        self.__main_rect = pygame.Rect((x, y), (width, height))
         self.__main_surface = pygame.Surface((width - 10, height - 10))
+        self.__main_rect = pygame.Rect((x, y), (width, height))
         self.__max_item_on_page = math.floor(height / self.__item_height)
 
         self.__main_surface.fill(self.__bg_color)
@@ -201,12 +204,18 @@ class Listbox:
         pygame.draw.rect(self.__screen, _BLACK, self.__main_rect)
         for index, item in enumerate(self.__items[self.__first_index:self.__max_item_on_page]):
             text_surface = self.__font.render(item.text, True, self.__text_color)
-            rect = pygame.Rect((x, y + index * self.__item_height), (width, self.__item_height))
-            text_rect = text_surface.get_rect(topleft = rect.topleft)
-            text_rect.center = rect.center
+            display_rect = pygame.Rect(
+                0,
+                index * self.__item_height,
+                width - 10,
+                self.__item_height
+            )
+            collision_rect = pygame.Rect(
+                (x, y + index * self.__item_height), (width, self.__item_height)
+            )
+            pygame.draw.rect(self.__main_surface, self.__colors[item.status], display_rect, 3)
+            self.__text_rects.append(collision_rect)
             self.__text_surfaces.append(text_surface)
-            self.__text_rects.append(rect)
-            pygame.draw.rect(self.__main_surface, self.__colors[item.status], rect, 3)
         self.__screen.blit(self.__main_surface, (x + 5, y + 5))
         for index, text_surface in enumerate(self.__text_surfaces):
             self.__screen.blit(
