@@ -22,8 +22,8 @@ _CAM_CONTROl = {
     "right": K_d,
     "up": K_w,
     "down": K_s,
-    "in": K_q,
-    "out": K_e,
+    "in": None,
+    "out": None,
     "reset": K_SPACE
 }
 
@@ -98,8 +98,12 @@ class Camera:
 
         if not self.__controls["in"] is None:
             zoom_in      = int(keys_pressed[self.__controls["in"]])
+        else:
+            zoom_in      = 0
         if not self.__controls["out"] is None:
             zoom_out     = int(keys_pressed[self.__controls["out"]])
+        else:
+            zoom_out     = 0
         if not self.__controls["reset"] is None:
             reset        = int(keys_pressed[self.__controls["reset"]])
         else:
