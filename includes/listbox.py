@@ -47,7 +47,8 @@ def _color_check(names: list, params: list, expected_value: str):
 class _ListBoxItem:
     def __init__(self, name: str, command: Callable[[], Any] | str = ...,
                  args: tuple | list = ..., text: str = ...,
-                 status: Literal["available", "unavailable", "selected", "disabled"] = "available"
+                 status: Literal["available", "unavailable", "selected", "disabled"] = "available",
+                 delay_between_execution: float | int = 0.5
                  ) -> None:
         self.__name = name
         self.__command = command
@@ -58,6 +59,7 @@ class _ListBoxItem:
         self.__text = text
         self.__status = status
         self.__executed = False
+        self.__delay = delay_between_execution
 
     @property
     def name(self):
@@ -80,16 +82,20 @@ class _ListBoxItem:
             self.__status = value
 
     def run_command(self, use_thread: bool = False, wait_join: bool = True,
-                     is_lambda:bool = False):
-        if not self.__executed and pygame.event.peek(pygame.MOUSEBUTTONUP):
+                     is_lambda: bool = False):
+        if callable(self.__command) and self.__command.__name__ == "<lambda>":
+            is_lambda = True
+        if not self.__executed:
             self.__executed = True
             if is_lambda and self.__args:
                 self.__command(*self.__args)
+                time.sleep(self.__delay)
                 self.__status = ItemStatus.AVAILABLE.value
                 self.__executed = False
                 return
             elif is_lambda and not self.__args:
                 self.__command()
+                time.sleep(self.__delay)
                 self.__status = ItemStatus.AVAILABLE.value
                 self.__executed = False
                 return
@@ -108,7 +114,7 @@ class _ListBoxItem:
                 work.start()
                 work.join()
             self.__executed = False
-        time.sleep(0.5)
+        time.sleep(self.__delay)
         self.__status = ItemStatus.AVAILABLE.value
 
     def config(self, name = ..., command = ..., text = ..., status = ...):
@@ -173,8 +179,9 @@ class Listbox:
                  args: tuple | list = ..., text: str = "",
                  status: Literal["available", "unavailable", "selected",
                                  "disabled"] = "available"):
-        item = _ListBoxItem(name, command, args, text, status)
-        self.__items.append(item)
+        if len(self.__items) < self.__max_item:
+            item = _ListBoxItem(name, command, args, text, status)
+            self.__items.append(item)
 
     def remove_item(self, name: str = ""):
         for item in self.__items:
@@ -227,6 +234,18 @@ class Listbox:
             )
         self.__check_click()
 
+    def scroll_down(self, step: int):
+        if not self.__first_index + abs(step) > len(self.__items):
+            self.__first_index += abs(step)
+        else:
+            self.__first_index += abs(len(self.__items) - self.__first_index)
+
+    def scroll_up(self, step: int):
+        if not self.__first_index - abs(step) < 0:
+            self.__first_index -= abs(step)
+        else:
+            self.__first_index = 0
+
     def __check_click(self):
         """Check button click
         """
@@ -243,9 +262,9 @@ class Listbox:
             if not item.status == ItemStatus.AVAILABLE.value:
                 return
             item.config(status=ItemStatus.SELECTED.value)
-            if pygame.event.peek(pygame.MOUSEBUTTONDOWN):
-                wc = lambda: Thread(target=item.run_command).start()
-                wc()
+            # if pygame.event.peek(pygame.MOUSEBUTTONDOWN):
+            wc = lambda: Thread(target=item.run_command).start()
+            wc()
 
     def get_objects(self):
         return self.__items
