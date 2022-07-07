@@ -148,10 +148,10 @@ class StaticObstacle:
         elif shape == "Line" or shape == 0:
             self.__shape = pymunk.Segment(self.__body, _ShapeDefinition.Line.value[0],
                                           tuple(np.multiply(_ShapeDefinition.Line.value[1],
-                                                            multiplier)), radius)
+                                                            multiplier)), 15)
         else:
-            print(f"Unknown shape. Creating a segment with {radius} as thickness instead")
-            self.__shape = pymunk.Segment(self.__body, pos, tuple(np.add(pos, 10)), radius)
+            print(f"Unknown shape. Creating a segment with 15 as thickness instead")
+            self.__shape = pymunk.Segment(self.__body, pos, tuple(np.add(pos, 10)), 15)
         self.__shape.density = density
         self.__shape.friction = friction
         self.__shape.elasticity = elasticity
